@@ -1,4 +1,3 @@
-<script>
 document.addEventListener('DOMContentLoaded', function () {
 
   // ============================================================
@@ -191,4 +190,3 @@ document.addEventListener('DOMContentLoaded', function () {
     setTimeout(function () { observer.disconnect(); }, 10000);
   }
 });
-</script>
