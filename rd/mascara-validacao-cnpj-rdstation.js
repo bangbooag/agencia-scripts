@@ -71,16 +71,17 @@ document.addEventListener('DOMContentLoaded', function () {
     cnpjField.setAttribute('maxlength', '18');
 
     // ---- FUNÇÕES DE ERRO ----
-    function mostrarErro() {
+    function mostrarErro(mensagem) {
       cnpjField.style.borderColor = '#e74c3c';
       cnpjField.style.boxShadow = '0 0 0 2px rgba(231, 76, 60, 0.25)';
-      if (!document.getElementById('cnpj-erro-msg')) {
-        var msgErro = document.createElement('span');
-        msgErro.id = 'cnpj-erro-msg';
-        msgErro.textContent = 'CNPJ inválido. Verifique o número digitado.';
-        msgErro.style.cssText = 'color:#e74c3c;font-size:12px;margin-top:4px;display:block;font-weight:500;';
-        cnpjField.parentNode.insertBefore(msgErro, cnpjField.nextSibling);
+      var msg = document.getElementById('cnpj-erro-msg');
+      if (!msg) {
+        msg = document.createElement('span');
+        msg.id = 'cnpj-erro-msg';
+        msg.style.cssText = 'color:#e74c3c;font-size:12px;margin-top:4px;display:block;font-weight:500;';
+        cnpjField.parentNode.insertBefore(msg, cnpjField.nextSibling);
       }
+      msg.textContent = mensagem || 'CNPJ inválido. Verifique o número digitado.';
     }
 
     function limparErro() {
@@ -114,6 +115,11 @@ document.addEventListener('DOMContentLoaded', function () {
       var valor = cnpjField.value.replace(/\D/g, '');
       if (valor.length === 0) { limparErro(); return; }
 
+      if (valor.length < 14) {
+        mostrarErro('CNPJ incompleto. Digite os 14 dígitos.');
+        return;
+      }
+
       if (validarCNPJ(valor)) {
         limparErro();
         cnpjField.style.borderColor = '#27ae60';
@@ -123,7 +129,7 @@ document.addEventListener('DOMContentLoaded', function () {
           cnpjField.style.boxShadow = '';
         }, 2000);
       } else {
-        mostrarErro();
+        mostrarErro('CNPJ inválido. Verifique o número digitado.');
       }
     });
 
@@ -134,11 +140,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function bloquearSeInvalido(e) {
       var valor = cnpjField.value.replace(/\D/g, '');
-      if (valor.length > 0 && !validarCNPJ(valor)) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
+      if (valor.length === 0) return true;
+
+      if (valor.length < 14 || !validarCNPJ(valor)) {
+        if (e) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        }
         cnpjField.focus();
-        mostrarErro();
+        var mensagem = valor.length < 14
+          ? 'CNPJ incompleto. Digite os 14 dígitos.'
+          : 'CNPJ inválido. Verifique o número digitado.';
+        mostrarErro(mensagem);
         alert('O CNPJ informado é inválido. Por favor, verifique e corrija antes de enviar.');
         return false;
       }
@@ -158,13 +171,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // ESTRATÉGIA 3: Sobrescreve form.submit() nativo
       var nativeSubmit = HTMLFormElement.prototype.submit;
       form.submit = function () {
-        var valor = cnpjField.value.replace(/\D/g, '');
-        if (valor.length > 0 && !validarCNPJ(valor)) {
-          cnpjField.focus();
-          mostrarErro();
-          alert('O CNPJ informado é inválido. Por favor, verifique e corrija antes de enviar.');
-          return;
-        }
+        if (bloquearSeInvalido(null) === false) return;
         nativeSubmit.call(form);
       };
     }
